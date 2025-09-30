@@ -80,6 +80,7 @@ function checkDocument(document: vscode.TextDocument) {
   // Get configuration
   const config = vscode.workspace.getConfiguration("mongodbSchemaChecker");
   const modelMethods: string[] = config.get("modelMethods", [
+    // Query methods
     "find",
     "findOne",
     "findById",
@@ -89,17 +90,52 @@ function checkDocument(document: vscode.TextDocument) {
     "findByIdAndDelete",
     "findOneAndRemove",
     "findByIdAndRemove",
+    "findOneAndReplace",
+    "where",
+    "exists",
+    "distinct",
+    // Create methods
     "create",
     "insertMany",
+    "save",
+    // Update methods
+    "update",
     "updateOne",
     "updateMany",
     "replaceOne",
+    // Delete methods
+    "remove",
     "deleteOne",
     "deleteMany",
+    // Count methods
+    "count",
     "countDocuments",
     "estimatedDocumentCount",
+    // Aggregation methods
     "aggregate",
+    "mapReduce",
+    "populate",
+    // Validation methods
+    "validate",
+    "validateSync",
+    // Index methods
+    "createIndexes",
+    "ensureIndexes",
+    "syncIndexes",
+    "listIndexes",
+    // Utility methods
     "watch",
+    "bulkWrite",
+    "hydrate",
+    "init",
+    "startSession",
+
+    "translateAliases",
+    // Schema/Model methods
+    "discriminator",
+    "on",
+    "once",
+    "emit",
   ]);
 
   // Get imported model names
@@ -217,6 +253,55 @@ function findModelMethodUsages(
   const lines = text.split("\n");
   let inMultiLineComment = false;
 
+  // Known JavaScript/Node.js globals to exclude
+  const knownGlobals = new Set([
+    "Math",
+    "Date",
+    "Array",
+    "Object",
+    "String",
+    "Number",
+    "Boolean",
+    "Promise",
+    "Error",
+    "RegExp",
+    "JSON",
+    "Console",
+    "Buffer",
+    "Map",
+    "Set",
+    "WeakMap",
+    "WeakSet",
+    "Symbol",
+    "Proxy",
+    "Reflect",
+    "Intl",
+    "BigInt",
+    "ArrayBuffer",
+    "DataView",
+    "Float32Array",
+    "Float64Array",
+    "Int8Array",
+    "Int16Array",
+    "Int32Array",
+    "Uint8Array",
+    "Uint16Array",
+    "Uint32Array",
+    "Uint8ClampedArray",
+    "BigInt64Array",
+    "BigUint64Array",
+    "Atomics",
+    "SharedArrayBuffer",
+    "WebAssembly",
+    "Infinity",
+    "NaN",
+    "undefined",
+    "Function",
+    "Generator",
+    "GeneratorFunction",
+    "AsyncFunction",
+  ]);
+
   // Create a regex pattern for all model methods
   const methodsPattern = modelMethods.join("|");
   // Match: ModelName.methodName (with optional await)
@@ -224,6 +309,10 @@ function findModelMethodUsages(
     `\\b([A-Z][a-zA-Z0-9_]*)\\.(${methodsPattern})\\b`,
     "g"
   );
+
+  // Also match any method call on capitalized identifiers (catch-all for unlisted methods)
+  const anyModelMethodRegex =
+    /\b([A-Z][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const line = lines[lineIndex];
@@ -253,20 +342,46 @@ function findModelMethodUsages(
       continue;
     }
 
-    let match;
-    modelMethodRegex.lastIndex = 0; // Reset regex state
+    // Track which model names we've already added from this line to avoid duplicates
+    const addedModelsThisLine = new Set<string>();
 
+    // First, check for specific Mongoose methods
+    let match;
+    modelMethodRegex.lastIndex = 0;
     while ((match = modelMethodRegex.exec(line)) !== null) {
       const modelName = match[1];
       const methodName = match[2];
-      const startPos = new vscode.Position(lineIndex, match.index);
-      const endPos = new vscode.Position(
-        lineIndex,
-        match.index + modelName.length
-      );
-      const range = new vscode.Range(startPos, endPos);
 
-      usages.push({ range, modelName, methodName });
+      if (!knownGlobals.has(modelName)) {
+        const startPos = new vscode.Position(lineIndex, match.index);
+        const endPos = new vscode.Position(
+          lineIndex,
+          match.index + modelName.length
+        );
+        const range = new vscode.Range(startPos, endPos);
+        usages.push({ range, modelName, methodName });
+        addedModelsThisLine.add(`${modelName}.${methodName}@${match.index}`);
+      }
+    }
+
+    // Then, check for any method call on capitalized identifiers (catch-all)
+    anyModelMethodRegex.lastIndex = 0;
+    while ((match = anyModelMethodRegex.exec(line)) !== null) {
+      const modelName = match[1];
+      const methodName = match[2];
+      const uniqueKey = `${modelName}.${methodName}@${match.index}`;
+
+      // Skip if it's a known global or already added
+      if (!knownGlobals.has(modelName) && !addedModelsThisLine.has(uniqueKey)) {
+        const startPos = new vscode.Position(lineIndex, match.index);
+        const endPos = new vscode.Position(
+          lineIndex,
+          match.index + modelName.length
+        );
+        const range = new vscode.Range(startPos, endPos);
+        usages.push({ range, modelName, methodName });
+        addedModelsThisLine.add(uniqueKey);
+      }
     }
   }
 

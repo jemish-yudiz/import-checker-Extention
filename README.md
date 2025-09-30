@@ -4,10 +4,12 @@ A Visual Studio Code extension that helps you remember to import MongoDB models 
 
 ## Features
 
-- **Automatic Detection**: Detects when you're using MongoDB model methods without importing the model
+- **Comprehensive Detection**: Detects **ALL** methods on MongoDB models - including custom static methods!
+- **50+ Built-in Methods**: Recognizes all standard Mongoose methods (find, create, update, delete, aggregate, etc.)
 - **Auto-Import Quick Fix**: Click on the warning and automatically import the missing model with one click! 💡
 - **Smart Import Path**: Automatically imports from `./models/ModelName`
-- **Smart Warnings**: Shows warnings when model methods are called on unimported models
+- **Comment-Aware**: Properly ignores code in comments (both `//` single-line and `/* */` multi-line)
+- **Intelligent Filtering**: Excludes JavaScript/Node.js built-in globals (Math, Date, Array, Promise, etc.)
 - **Configurable**: Customize which MongoDB methods to check for
 - **Real-time Checking**: Checks your code as you type and when you save files
 - **Works with ES6 and CommonJS**: Supports both `import` and `require` syntax
@@ -16,10 +18,15 @@ A Visual Studio Code extension that helps you remember to import MongoDB models 
 
 The extension scans your JavaScript and TypeScript files for:
 
-1. MongoDB model method calls (like `User.updateOne`, `Product.find`, etc.)
+1. **Any method call** on capitalized identifiers (Model names like `User`, `Product`, `Order`)
 2. Import statements to see which models are imported
+3. Intelligently excludes built-in JavaScript/Node.js globals and commented code
 
-If it finds model method usage without the corresponding import, it displays a warning with helpful information.
+If it finds a model method usage without the corresponding import, it displays a warning with helpful information. The extension uses a smart catch-all pattern that detects:
+
+- All 50+ standard Mongoose methods
+- **Custom static methods** you define on your models
+- Any `ModelName.anyMethod()` pattern
 
 ## Example
 
@@ -28,6 +35,7 @@ If it finds model method usage without the corresponding import, it displays a w
 async function updateUser() {
   // Warning: Model 'User' is not imported
   await User.updateOne({ email: "test@example.com" }, { age: 25 });
+  await User.findByEmail("test@example.com"); // ❌ Even custom methods!
 }
 
 // 💡 Click the lightbulb or press Cmd+. (Mac) / Ctrl+. (Windows) to auto-import:
@@ -38,7 +46,15 @@ import User from "./models/User";
 
 async function updateUser() {
   await User.updateOne({ email: "test@example.com" }, { age: 25 });
+  await User.findByEmail("test@example.com"); // ✅ Now works!
 }
+
+// ✅ Comments are properly ignored:
+// await User.deleteOne({ _id: "123" }); // No warning here!
+
+/*
+  await User.find({}); // No warning in multi-line comments either!
+*/
 ```
 
 ## How to Use Auto-Import
@@ -53,14 +69,33 @@ async function updateUser() {
 
 ## Supported Model Methods
 
-By default, the extension checks for these MongoDB/Mongoose model methods:
+The extension detects **ALL** methods called on Model-like identifiers (capitalized names). This includes:
 
-- Query methods: `find`, `findOne`, `findById`
-- Update methods: `findOneAndUpdate`, `findByIdAndUpdate`, `updateOne`, `updateMany`, `replaceOne`
-- Delete methods: `findOneAndDelete`, `findByIdAndDelete`, `deleteOne`, `deleteMany`
-- Create methods: `create`, `insertMany`
-- Count methods: `countDocuments`, `estimatedDocumentCount`
-- Other methods: `aggregate`, `watch`
+### Standard Mongoose Methods (50+)
+
+- **Query methods**: `find`, `findOne`, `findById`, `findOneAndUpdate`, `findByIdAndUpdate`, `findOneAndDelete`, `findByIdAndDelete`, `findOneAndRemove`, `findByIdAndRemove`, `findOneAndReplace`, `where`, `exists`, `distinct`
+- **Create methods**: `create`, `insertMany`, `save`
+- **Update methods**: `update`, `updateOne`, `updateMany`, `replaceOne`
+- **Delete methods**: `remove`, `deleteOne`, `deleteMany`
+- **Count methods**: `count`, `countDocuments`, `estimatedDocumentCount`
+- **Aggregation methods**: `aggregate`, `mapReduce`, `populate`
+- **Validation methods**: `validate`, `validateSync`
+- **Index methods**: `createIndexes`, `ensureIndexes`, `syncIndexes`, `listIndexes`
+- **Utility methods**: `watch`, `bulkWrite`, `hydrate`, `init`, `startSession`, `translateAliases`
+- **Schema/Model methods**: `discriminator`, `on`, `once`, `emit`
+
+### Custom Methods
+
+The extension also detects **any custom static methods** you define on your models! For example:
+
+- `User.findByEmail()`
+- `Product.searchByCategory()`
+- `Order.calculateTotal()`
+
+### Smart Exclusions
+
+The extension intelligently excludes built-in JavaScript/Node.js globals:
+- `Math.random()`, `Date.now()`, `Array.from()`, `Object.keys()`, `Promise.resolve()`, `JSON.parse()`, etc.
 
 ## Configuration
 
@@ -68,12 +103,13 @@ You can customize the extension's behavior in VS Code settings:
 
 ### `mongodbSchemaChecker.modelMethods`
 
-List of MongoDB model methods to check for.
+List of MongoDB model methods to prioritize for detection. The extension uses a catch-all pattern to detect **any method** on capitalized identifiers, but this list ensures specific methods are always checked.
 
-**Default**:
+**Default** (includes 50+ methods):
 
 ```json
 [
+  // Query methods
   "find",
   "findOne",
   "findById",
@@ -83,21 +119,57 @@ List of MongoDB model methods to check for.
   "findByIdAndDelete",
   "findOneAndRemove",
   "findByIdAndRemove",
+  "findOneAndReplace",
+  "where",
+  "exists",
+  "distinct",
+  // Create methods
   "create",
   "insertMany",
+  "save",
+  // Update methods
+  "update",
   "updateOne",
   "updateMany",
   "replaceOne",
+  // Delete methods
+  "remove",
   "deleteOne",
   "deleteMany",
+  // Count methods
+  "count",
   "countDocuments",
   "estimatedDocumentCount",
+  // Aggregation methods
   "aggregate",
-  "watch"
+  "mapReduce",
+  "populate",
+  // Validation methods
+  "validate",
+  "validateSync",
+  // Index methods
+  "createIndexes",
+  "ensureIndexes",
+  "syncIndexes",
+  "listIndexes",
+  // Utility methods
+  "watch",
+  "bulkWrite",
+  "hydrate",
+  "init",
+  "startSession",
+  "translateAliases",
+  // Schema/Model methods
+  "discriminator",
+  "on",
+  "once",
+  "emit"
 ]
 ```
 
-**Example - Add custom methods**:
+**Note**: Even if you customize this list, the extension will still detect **ANY method** called on capitalized identifiers (Models), including custom methods not in this list.
+
+**Example - Minimal configuration**:
 
 ```json
 {
@@ -105,8 +177,7 @@ List of MongoDB model methods to check for.
     "find",
     "findOne",
     "updateOne",
-    "create",
-    "myCustomMethod"
+    "create"
   ]
 }
 ```
@@ -149,11 +220,27 @@ import { Product, Order } from "./models";
 const User = require("./models/User");
 const { Product, Order } = require("./models");
 
-// These will all work fine (no warnings)
+// ✅ These will all work fine (no warnings)
 await User.findOne({ email: "test@example.com" });
 await User.updateOne({ _id: "123" }, { name: "John" });
+await User.findByEmail("test@example.com"); // Custom method - works!
 await Product.find({ inStock: true });
+await Product.searchByCategory("electronics"); // Custom method - works!
 await Order.create({ userId: "123", total: 99.99 });
+await Order.calculateTotal(); // Custom method - works!
+
+// ✅ Comments are properly ignored (no warnings)
+// await UnimportedModel.find({}); // This won't trigger a warning
+/*
+  Multi-line comments are also ignored:
+  await AnotherUnimportedModel.create({});
+*/
+
+// ✅ Built-in globals are excluded (no warnings)
+Math.random();
+Date.now();
+Array.from([1, 2, 3]);
+Promise.resolve();
 ```
 
 ## Steps to Install Locally
