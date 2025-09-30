@@ -128,8 +128,27 @@ function checkDocument(document: vscode.TextDocument) {
 function getImportedModels(text: string): Set<string> {
   const importedModels = new Set<string>();
   const lines = text.split("\n");
+  let inMultiLineComment = false;
 
   for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Track multi-line comment state
+    if (trimmedLine.includes("/*")) {
+      inMultiLineComment = true;
+    }
+    if (inMultiLineComment) {
+      if (trimmedLine.includes("*/")) {
+        inMultiLineComment = false;
+      }
+      continue; // Skip lines inside multi-line comments
+    }
+
+    // Skip single-line comments
+    if (trimmedLine.startsWith("//")) {
+      continue;
+    }
+
     // ES6 import statements
     // import User from './models/User'
     // import { User, Product } from './models'
@@ -196,6 +215,7 @@ function findModelMethodUsages(
     methodName: string;
   }> = [];
   const lines = text.split("\n");
+  let inMultiLineComment = false;
 
   // Create a regex pattern for all model methods
   const methodsPattern = modelMethods.join("|");
@@ -207,17 +227,29 @@ function findModelMethodUsages(
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const line = lines[lineIndex];
+    const trimmedLine = line.trim();
+
+    // Track multi-line comment state
+    if (trimmedLine.includes("/*")) {
+      inMultiLineComment = true;
+    }
+    if (inMultiLineComment) {
+      if (trimmedLine.includes("*/")) {
+        inMultiLineComment = false;
+      }
+      continue; // Skip lines inside multi-line comments
+    }
+
+    // Skip single-line comments
+    if (trimmedLine.startsWith("//")) {
+      continue;
+    }
 
     // Skip import/require lines
     if (
       /^\s*(import|const|let|var)\s+.*?=\s*require/.test(line) ||
       /^\s*import\s+/.test(line)
     ) {
-      continue;
-    }
-
-    // Skip comments
-    if (/^\s*(\/\/|\/\*|\*)/.test(line)) {
       continue;
     }
 

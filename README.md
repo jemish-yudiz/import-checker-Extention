@@ -178,8 +178,7 @@ await Order.create({ userId: "123", total: 99.99 });
 
    - Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
    - Type: `Extensions: Install from VSIX...`
-   - Navigate to your git clone folder
-   - Select `mongodb-model-import-checker-1.0.0.vsix`
+   - Find and Select `mongodb-model-import-checker-1.0.0.vsix`
 
    **Option B – Via Extensions View:**
 
