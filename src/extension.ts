@@ -167,7 +167,7 @@ function checkDocument(document: vscode.TextDocument) {
   // Get imported model names
   const importedModels = getImportedModels(text);
 
-  // Find model method usages
+  // Find model method usages (only specific Mongoose methods)
   const modelUsages = findModelMethodUsages(text, modelMethods, document);
 
   // Check if models are imported
@@ -266,6 +266,7 @@ function getImportedModels(text: string): Set<string> {
   return importedModels;
 }
 
+// Find usages of specific MongoDB/Mongoose model methods
 function findModelMethodUsages(
   text: string,
   modelMethods: string[],
@@ -279,66 +280,13 @@ function findModelMethodUsages(
   const lines = text.split("\n");
   let inMultiLineComment = false;
 
-  // Known JavaScript/Node.js globals to exclude
-  const knownGlobals = new Set([
-    "Math",
-    "Date",
-    "Array",
-    "Object",
-    "String",
-    "Number",
-    "Boolean",
-    "Promise",
-    "Error",
-    "RegExp",
-    "JSON",
-    "Console",
-    "Buffer",
-    "Map",
-    "Set",
-    "WeakMap",
-    "WeakSet",
-    "Symbol",
-    "Proxy",
-    "Reflect",
-    "Intl",
-    "BigInt",
-    "ArrayBuffer",
-    "DataView",
-    "Float32Array",
-    "Float64Array",
-    "Int8Array",
-    "Int16Array",
-    "Int32Array",
-    "Uint8Array",
-    "Uint16Array",
-    "Uint32Array",
-    "Uint8ClampedArray",
-    "BigInt64Array",
-    "BigUint64Array",
-    "Atomics",
-    "SharedArrayBuffer",
-    "WebAssembly",
-    "Infinity",
-    "NaN",
-    "undefined",
-    "Function",
-    "Generator",
-    "GeneratorFunction",
-    "AsyncFunction",
-  ]);
-
   // Create a regex pattern for all model methods
   const methodsPattern = modelMethods.join("|");
-  // Match: ModelName.methodName (with optional await)
+  // Match: ModelName.methodName
   const modelMethodRegex = new RegExp(
     `\\b([A-Z][a-zA-Z0-9_]*)\\.(${methodsPattern})\\b`,
     "g"
   );
-
-  // Also match any method call on capitalized identifiers (catch-all for unlisted methods)
-  const anyModelMethodRegex =
-    /\b([A-Z][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const line = lines[lineIndex];
@@ -368,46 +316,20 @@ function findModelMethodUsages(
       continue;
     }
 
-    // Track which model names we've already added from this line to avoid duplicates
-    const addedModelsThisLine = new Set<string>();
-
-    // First, check for specific Mongoose methods
+    // Check for specific MongoDB/Mongoose methods only
     let match;
     modelMethodRegex.lastIndex = 0;
     while ((match = modelMethodRegex.exec(line)) !== null) {
       const modelName = match[1];
       const methodName = match[2];
 
-      if (!knownGlobals.has(modelName)) {
-        const startPos = new vscode.Position(lineIndex, match.index);
-        const endPos = new vscode.Position(
-          lineIndex,
-          match.index + modelName.length
-        );
-        const range = new vscode.Range(startPos, endPos);
-        usages.push({ range, modelName, methodName });
-        addedModelsThisLine.add(`${modelName}.${methodName}@${match.index}`);
-      }
-    }
-
-    // Then, check for any method call on capitalized identifiers (catch-all)
-    anyModelMethodRegex.lastIndex = 0;
-    while ((match = anyModelMethodRegex.exec(line)) !== null) {
-      const modelName = match[1];
-      const methodName = match[2];
-      const uniqueKey = `${modelName}.${methodName}@${match.index}`;
-
-      // Skip if it's a known global or already added
-      if (!knownGlobals.has(modelName) && !addedModelsThisLine.has(uniqueKey)) {
-        const startPos = new vscode.Position(lineIndex, match.index);
-        const endPos = new vscode.Position(
-          lineIndex,
-          match.index + modelName.length
-        );
-        const range = new vscode.Range(startPos, endPos);
-        usages.push({ range, modelName, methodName });
-        addedModelsThisLine.add(uniqueKey);
-      }
+      const startPos = new vscode.Position(lineIndex, match.index);
+      const endPos = new vscode.Position(
+        lineIndex,
+        match.index + modelName.length
+      );
+      const range = new vscode.Range(startPos, endPos);
+      usages.push({ range, modelName, methodName });
     }
   }
 
