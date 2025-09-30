@@ -1,0 +1,64 @@
+{
+  "name": "mongodb-model-import-checker",
+  "displayName": "MongoDB Model Import Checker",
+  "description": "Warns when MongoDB model methods are used without importing the model",
+  "version": "1.0.0",
+  "publisher": "jemish-sakariya",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "MongoDB Model Import Checker",
+      "properties": {
+        "mongodbSchemaChecker.modelMethods": {
+          "type": "array",
+          "default": [
+            "find",
+            "findOne",
+            "findById",
+            "findOneAndUpdate",
+            "findByIdAndUpdate",
+            "findOneAndDelete",
+            "findByIdAndDelete",
+            "findOneAndRemove",
+            "findByIdAndRemove",
+            "create",
+            "insertMany",
+            "updateOne",
+            "updateMany",
+            "replaceOne",
+            "deleteOne",
+            "deleteMany",
+            "countDocuments",
+            "estimatedDocumentCount",
+            "aggregate",
+            "watch"
+          ],
+          "description": "MongoDB model methods to check for"
+        }
+      }
+    },
+    "commands": []
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0"
+  }
+}
