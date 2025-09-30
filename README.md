@@ -156,27 +156,37 @@ await Product.find({ inStock: true });
 await Order.create({ userId: "123", total: 99.99 });
 ```
 
-## Publishing
+## Steps to Install Locally
 
-To package and publish this extension:
-
-1. Install vsce:
+1. **Compile the extension:**
 
    ```bash
-   npm install -g @vscode/vsce
+   npm run compile
    ```
 
-2. Package the extension:
+2. **Package it (using `npx` to avoid permission issues):**
 
    ```bash
-   vsce package
+   npx vsce package
    ```
 
-3. Publish to VS Code Marketplace:
+   This will create a file called `mongodb-model-import-checker-1.0.0.vsix` in your current directory.
 
-   ```bash
-   vsce publish
-   ```
+3. **Install in VS Code:**
+
+   **Option A – Via Command Palette:**
+
+   - Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+   - Type: `Extensions: Install from VSIX...`
+   - Navigate to your git clone folder
+   - Select `mongodb-model-import-checker-1.0.0.vsix`
+
+   **Option B – Via Extensions View:**
+
+   - Press `Cmd+Shift+X` to open Extensions
+   - Click the `...` (three dots) menu at the top right
+   - Select **Install from VSIX...**
+   - Navigate to the `.vsix` file and select it
 
 ## Support
 
