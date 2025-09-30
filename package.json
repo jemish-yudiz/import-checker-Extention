@@ -44,6 +44,21 @@
             "watch"
           ],
           "description": "MongoDB model methods to check for"
+        },
+        "mongodbSchemaChecker.checkOnType": {
+          "type": "boolean",
+          "default": true,
+          "description": "✓ Check for missing imports while typing (with 500ms debounce after you stop typing). Uncheck for better performance on slower machines."
+        },
+        "mongodbSchemaChecker.skipLargeFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "✓ Skip large files automatically for better performance. Uses maxFileSize setting to determine the limit."
+        },
+        "mongodbSchemaChecker.maxFileSize": {
+          "type": "number",
+          "default": 100000,
+          "description": "Maximum file size in bytes to check when 'skipLargeFiles' is enabled. Default: 100000 (100KB)"
         }
       }
     },

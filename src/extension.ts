@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
+let debounceTimer: NodeJS.Timeout | undefined;
+const DEBOUNCE_DELAY = 500; // milliseconds
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("MongoDB Schema Import Checker is now active!");
@@ -37,11 +39,24 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Check when document changes
+  // Check when document changes (with debouncing for performance)
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
+      const config = vscode.workspace.getConfiguration("mongodbSchemaChecker");
+      const checkOnType = config.get<boolean>("checkOnType", true);
+
+      if (!checkOnType) {
+        return; // Skip if checkOnType is disabled
+      }
+
       if (event.document === vscode.window.activeTextEditor?.document) {
-        checkDocument(event.document);
+        // Debounce: Clear previous timer and set a new one
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
+        debounceTimer = setTimeout(() => {
+          checkDocument(event.document);
+        }, DEBOUNCE_DELAY);
       }
     })
   );
@@ -79,6 +94,17 @@ function checkDocument(document: vscode.TextDocument) {
 
   // Get configuration
   const config = vscode.workspace.getConfiguration("mongodbSchemaChecker");
+
+  // PERFORMANCE: Skip very large files (if enabled)
+  const skipLargeFiles = config.get<boolean>("skipLargeFiles", true);
+  const maxFileSize = config.get<number>("maxFileSize", 100000); // 100KB default
+
+  if (skipLargeFiles && text.length > maxFileSize) {
+    console.log(
+      `MongoDB Schema Checker: Skipping large file (${text.length} bytes)`
+    );
+    return;
+  }
   const modelMethods: string[] = config.get("modelMethods", [
     // Query methods
     "find",

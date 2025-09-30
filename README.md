@@ -95,6 +95,7 @@ The extension also detects **any custom static methods** you define on your mode
 ### Smart Exclusions
 
 The extension intelligently excludes built-in JavaScript/Node.js globals:
+
 - `Math.random()`, `Date.now()`, `Array.from()`, `Object.keys()`, `Promise.resolve()`, `JSON.parse()`, etc.
 
 ## Configuration
@@ -181,6 +182,106 @@ List of MongoDB model methods to prioritize for detection. The extension uses a 
   ]
 }
 ```
+
+### `mongodbSchemaChecker.checkOnType`
+
+✓ **Checkbox**: Check for missing imports while typing (with 500ms debounce).
+
+**Default**: `true` (checked)
+
+**Description**: When enabled, the extension checks your code as you type (with a 500ms delay after you stop typing). Uncheck this on slower machines to only check on file save.
+
+**Example - Disable for better performance**:
+
+```json
+{
+  "mongodbSchemaChecker.checkOnType": false
+}
+```
+
+### `mongodbSchemaChecker.skipLargeFiles`
+
+✓ **Checkbox**: Skip large files automatically for better performance.
+
+**Default**: `true` (checked)
+
+**Description**: When enabled, files larger than `maxFileSize` will be automatically skipped to prevent slowdowns. Uncheck to force checking all files regardless of size.
+
+**Example - Disable to check all files**:
+
+```json
+{
+  "mongodbSchemaChecker.skipLargeFiles": false
+}
+```
+
+### `mongodbSchemaChecker.maxFileSize`
+
+Maximum file size in bytes to check (when `skipLargeFiles` is enabled).
+
+**Default**: `100000` (100KB)
+
+**Description**: Files larger than this size will be skipped when `skipLargeFiles` is enabled. Adjust based on your machine's capabilities.
+
+**Example - Adjust file size limit**:
+
+```json
+{
+  "mongodbSchemaChecker.maxFileSize": 50000 // 50KB for slower machines
+}
+```
+
+## Performance
+
+The extension is designed to be **lightweight and fast**:
+
+### ⚡ Performance Features
+
+All performance features can be toggled using **checkboxes** in VS Code settings:
+
+- ✓ **500ms Debouncing** (`checkOnType`): Only checks after you stop typing for 500ms, not on every keystroke
+- ✓ **Skip Large Files** (`skipLargeFiles`): Automatically skips very large files (>100KB by default) to prevent slowdowns
+- **File Size Limit** (`maxFileSize`): Configurable size threshold for skipping files
+- **Smart Caching**: Regex patterns are compiled once and reused
+- **Early Returns**: Skips non-JavaScript/TypeScript files immediately
+
+### 🎯 Performance Tips
+
+If you experience slowness, use the **checkbox options** in VS Code settings:
+
+1. **☐ Uncheck "Check On Type"** to only check on save (Settings → MongoDB Model Import Checker):
+
+   ```json
+   {
+     "mongodbSchemaChecker.checkOnType": false
+   }
+   ```
+
+2. **☐ Uncheck "Skip Large Files"** if you want to check all files regardless of size:
+
+   ```json
+   {
+     "mongodbSchemaChecker.skipLargeFiles": false
+   }
+   ```
+
+3. **Reduce file size limit** for very large projects:
+
+   ```json
+   {
+     "mongodbSchemaChecker.maxFileSize": 50000
+   }
+   ```
+
+4. **Check console output** to see if large files are being skipped:
+   - Open: `View > Output > MongoDB Schema Checker`
+
+### 📊 Typical Performance
+
+- **Small files** (<10KB): ~1-5ms
+- **Medium files** (10-50KB): ~5-20ms
+- **Large files** (50-100KB): ~20-50ms
+- **Very large files** (>100KB): Skipped by default
 
 ## Installation & Development
 
